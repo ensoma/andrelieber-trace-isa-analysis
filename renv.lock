@@ -255,6 +255,31 @@
       ],
       "Hash": "7a29697b75e027767a53fde6c903eca7"
     },
+    "GGally": {
+      "Package": "GGally",
+      "Version": "2.2.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "RColorBrewer",
+        "dplyr",
+        "ggplot2",
+        "ggstats",
+        "grDevices",
+        "grid",
+        "gtable",
+        "lifecycle",
+        "magrittr",
+        "plyr",
+        "progress",
+        "rlang",
+        "scales",
+        "tidyr",
+        "utils"
+      ],
+      "Hash": "5da89b9b10d98a7820adb426939900a7"
+    },
     "GenomeInfoDb": {
       "Package": "GenomeInfoDb",
       "Version": "1.38.5",
@@ -912,6 +937,27 @@
       ],
       "Hash": "fd25391c3c4f6ecf0fa95f1e6d15378c"
     },
+    "broom.helpers": {
+      "Package": "broom.helpers",
+      "Version": "1.14.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "broom",
+        "cli",
+        "dplyr",
+        "labelled",
+        "lifecycle",
+        "purrr",
+        "rlang",
+        "stats",
+        "stringr",
+        "tibble",
+        "tidyr"
+      ],
+      "Hash": "ea30eb5d9412a4a5c2740685f680cd49"
+    },
     "bslib": {
       "Package": "bslib",
       "Version": "0.6.1",
@@ -1443,6 +1489,29 @@
       ],
       "Hash": "a53ec695e802bf8775d7162b8d1ad10c"
     },
+    "ggstats": {
+      "Package": "ggstats",
+      "Version": "0.5.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "broom.helpers",
+        "cli",
+        "dplyr",
+        "forcats",
+        "ggplot2",
+        "lifecycle",
+        "magrittr",
+        "patchwork",
+        "purrr",
+        "rlang",
+        "scales",
+        "stats",
+        "stringr",
+        "tidyr"
+      ],
+      "Hash": "006a64911e79a7dc7cbf839a57baaff4"
+    },
     "glue": {
       "Package": "glue",
       "Version": "1.7.0",
@@ -1744,6 +1813,23 @@
       ],
       "Hash": "b64ec208ac5bc1852b285f665d6368b3"
     },
+    "labelled": {
+      "Package": "labelled",
+      "Version": "2.12.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "dplyr",
+        "haven",
+        "lifecycle",
+        "rlang",
+        "stringr",
+        "tidyr",
+        "vctrs"
+      ],
+      "Hash": "1ec27c624ece6c20431e9249bd232797"
+    },
     "lambda.r": {
       "Package": "lambda.r",
       "Version": "1.2.4",
@@ -1980,6 +2066,17 @@
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "09eb987710984fc2905c7129c7d85e65"
+    },
+    "plyr": {
+      "Package": "plyr",
+      "Version": "1.8.9",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "Rcpp"
+      ],
+      "Hash": "6b8177fd19982f0020743fadbfdbd933"
     },
     "png": {
       "Package": "png",

@@ -15,6 +15,7 @@ library("patchwork")
 library("randomcoloR")
 library("ggseqlogo")
 library("Biostrings")
+library("karyoploteR")
 ```
 
 ## Prepare Data
@@ -360,5 +361,16 @@ ggsave(
 Karyotype plots R.
 
 ```{r}
+# Create GRanges for each sample.
+is_granges <- isa |>
+  select(sample_name, seqnames, start, end, strand, score) |>
+  mutate(seqnames=str_c("chr", seqnames)) |>
+  split(~ sample_name) |>
+  map(makeGRangesFromDataFrame, keep.extra.columns=TRUE)
 
+p <- plotKaryotype(genome="mm39")
+kpBars(
+  p, is_granges[[1]], col="blue",
+  y1=rep(0.5, length(is_granges[[1]]))
+)
 ```
