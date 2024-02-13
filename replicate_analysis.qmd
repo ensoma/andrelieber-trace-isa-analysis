@@ -81,7 +81,7 @@ in the plots.
 Replicate correlation before filtering.
 
 ```{r}
-df <- isa |>
+p <- isa |>
   mutate(
     file_id=str_replace_all(file_id, "-", "_")
   ) |>
@@ -93,7 +93,36 @@ df <- isa |>
       select(!c(sample_name, seqnames, start, end, strand))
     return(x)
   }) |>
-  map(ggpairs)
+  imap(\(x, y) {
+    ggpairs(
+      x,
+      lower=list(continuous=wrap("smooth_lm", color="darkgrey", size=0.25)),
+      diag=list(continuous=wrap("barDiag", binwidth=1, fill="lightskyblue")),
+      upper=list(continuous=wrap("cor", color="black", method="pearson"))
+    ) +
+      theme_bw() +
+      labs(title=y)
+  })
+
+if (!dir.exists(file.path("results", "replicate_cor", "prefilter"))) {
+  dir.create(
+    file.path("results", "replicate_cor", "prefilter"),
+    recursive=TRUE
+  )
+}
+
+iwalk(p, \(x, y) {
+  file_name <- y |>
+    str_to_lower() |>
+    str_replace_all(" ", "_") |>
+    str_remove("%") |>
+    str_glue("{filename}_prefilter_corplot.pdf", filename=_)
+  
+  ggsave(
+    file.path("results", "replicate_cor", "prefilter", file_name),
+    plot=x, device=cairo_pdf, height=4, width=5
+  )
+})
 ```
 
 Replicate correlation after filtering.
@@ -115,8 +144,138 @@ p <- isa |>
     return(x)
   }) |>
   imap(\(x, y) {
-    ggpairs(x) +
+    ggpairs(
+      x,
+      lower=list(continuous=wrap("smooth_lm", color="darkgrey", size=0.25)),
+      diag=list(continuous=wrap("barDiag", binwidth=1, fill="lightskyblue")),
+      upper=list(continuous=wrap("cor", color="black", method="pearson"))
+    ) +
       theme_bw() +
       labs(title=y)
   })
+
+if (!dir.exists(file.path("results", "replicate_cor", "postfilter"))) {
+  dir.create(
+    file.path("results", "replicate_cor", "postfilter"),
+    recursive=TRUE
+  )
+}
+
+iwalk(p, \(x, y) {
+  file_name <- y |>
+    str_to_lower() |>
+    str_replace_all(" ", "_") |>
+    str_remove("%") |>
+    str_glue("{filename}_postfilter_corplot.pdf", filename=_)
+  
+  ggsave(
+    file.path("results", "replicate_cor", "postfilter", file_name),
+    plot=x, device=cairo_pdf, height=4, width=5
+  )
+})
+```
+
+## Replicate Requirement
+
+```{r}
+#| fig.height: 8
+#| fig.width: 5
+
+# Get comparisons.
+df <- isa |>
+  split(~sample_name) |>
+  imap(\(x, y) {
+    single_combos <- tibble(
+      sample_1=unique(x$file_id)
+    )
+    
+    pairwise_combos <-
+      combn(unique(x$file_id), 2) |>
+      t() |>
+      as_tibble() |>
+      rename(sample_1=1, sample_2=2)
+    
+    all <-
+      combn(unique(x$file_id), 1) |>
+      as_tibble() |>
+      rename(sample_1=1, sample_2=2, sample_3=3)
+    
+    combos <- 
+      list(
+        single=single_combos,
+        two_of_two=pairwise_combos,
+        two_of_three=all,
+        three_of_three=all
+      ) |>
+      bind_rows(.id="comparison")
+    
+    return(combos)
+  }) |>
+  bind_rows(.id="sample_name")
+
+# Get the total ISs in each comparison.
+df <- mutate(
+  df,
+  n=pmap(
+    list(sample_1, sample_2, sample_3, sample_name, comparison),
+    \(s1, s2, s3, sample_name, comparison) {
+      samples <- discard(c(s1, s2, s3), is.na)
+      
+      iss <- filter(isa, sample_name == sample_name, file_id %in% samples)
+
+      if (comparison == "single") {
+        n <- tibble(file_id=samples, n=nrow(iss))
+      } else if (comparison == "two_of_two") {
+        n <- iss |>
+          group_by(seqnames, start, end, strand) |>
+          filter(n() == 2) |>
+          ungroup() |>
+          distinct(seqnames, start, end, strand) |>
+          mutate(file_id=str_c(samples, collapse="_")) |>
+          count(file_id)
+      } else if (comparison == "two_of_three") {
+        n <- iss |>
+          group_by(seqnames, start, end, strand) |>
+          filter(n() > 1) |>
+          ungroup() |>
+          distinct(seqnames, start, end, strand) |>
+          semi_join(x=iss, y=_, by=c("seqnames", "start", "end", "strand")) |>
+          count(file_id)
+      } else if (comparison == "three_of_three") {
+        n <- iss |>
+          group_by(seqnames, start, end, strand) |>
+          filter(n() == 3) |>
+          ungroup() |>
+          distinct(seqnames, start, end, strand) |>
+          mutate(file_id=str_c(samples, collapse="_")) |>
+          count(file_id)
+      }
+      
+      return(n)
+    }
+  )
+)
+
+# Plot
+sample_name_order <- c(
+  "Human K562 60.00%", "Mouse PBMC 65.10%", "Mouse PBMC 62.20%",
+  "Mouse PBMC 38.90%", "Mouse PBMC 37.00%", "Mouse PBMC 25.00%",
+  "Mouse PBMC 0.00%"
+)
+
+df |>
+  unnest(n) |>
+  dplyr::mutate(
+    comparison=factor(
+      comparison,
+      levels=c("single", "two_of_two", "two_of_three", "three_of_three")
+    ),
+    sample_name=factor(sample_name, levels=sample_name_order)
+  ) |>
+  ggplot(aes(x=comparison, y=n)) +
+    geom_jitter(width=0.15, aes(color=comparison), show.legend=FALSE) +
+    facet_wrap(facets=vars(sample_name), ncol=1, scales="free_y") +
+    ylim(0, NA) +
+    theme_bw() +
+    labs(x="Comparison", y="Number of Insertion Site Locations")
 ```
