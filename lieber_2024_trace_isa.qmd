@@ -16,6 +16,7 @@ library("randomcoloR")
 library("ggseqlogo")
 library("Biostrings")
 library("karyoploteR")
+library("Rsamtools")
 ```
 
 ## Prepare Data
@@ -370,7 +371,7 @@ is_granges <- isa |>
 
 p <- plotKaryotype(genome="mm39")
 kpBars(
-  p, is_granges[[1]], col="blue",
+  p, is_granges[[2]], col="blue",
   y1=rep(0.5, length(is_granges[[1]]))
 )
 ```
