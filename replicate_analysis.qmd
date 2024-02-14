@@ -289,3 +289,62 @@ ggsave(
   plot=p, device=cairo_pdf, height=5, width=7
 )
 ```
+
+What insertion sites get filtered when doing 2 of 2 comparisons.
+
+```{r}
+#| fig.height: 10
+#| fig.width: 12
+
+df <- isa |>
+  split(~sample_name) |>
+  imap(\(x, y) {
+    pairwise_combos <-
+      combn(unique(x$file_id), 2) |>
+      t() |>
+      as_tibble() |>
+      rename(sample_1=1, sample_2=2)
+    
+    return(pairwise_combos)
+  }) |>
+  bind_rows(.id="sample_name")
+
+# Get the total ISs in each comparison.
+df <- 
+  mutate(
+    df,
+    n=pmap(
+      list(sample_1, sample_2, sample_name),
+      \(s1, s2, s3, sample_name) {
+        samples <- c(s1, s2)
+        
+        iss <- filter(isa, sample_name == sample_name, file_id %in% samples)
+  
+        n <- iss |>
+          group_by(seqnames, start, end, strand) |>
+          filter(n() < 2) |>
+          ungroup() |>
+          count(file_id, score) |>
+          mutate(comparison=str_c(samples, collapse="_vs_"))
+        
+        return(n)
+      }
+    )
+  ) |>
+  unnest(n)
+
+# Plot
+p <- df |>
+  ggplot(aes(x=score, y=n)) +
+    geom_col() +
+    facet_wrap(facets=vars(comparison, file_id), scales="free") +
+    scale_y_continuous(breaks=scales::breaks_pretty()) +
+    theme_bw()
+
+print(p)
+
+ggsave(
+  file.path("results", "replicate_cor", "pairwise_filtered_histogram.pdf"),
+  plot=p, device=cairo_pdf, height=10, width=12
+)
+```
