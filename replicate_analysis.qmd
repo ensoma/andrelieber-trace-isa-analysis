@@ -178,8 +178,8 @@ iwalk(p, \(x, y) {
 ## Replicate Requirement
 
 ```{r}
-#| fig.height: 8
-#| fig.width: 5
+#| fig.height: 5
+#| fig.width: 7
 
 # Get comparisons.
 df <- isa |>
@@ -263,7 +263,7 @@ sample_name_order <- c(
   "Mouse PBMC 0.00%"
 )
 
-df |>
+p <- df |>
   unnest(n) |>
   dplyr::mutate(
     comparison=factor(
@@ -273,9 +273,19 @@ df |>
     sample_name=factor(sample_name, levels=sample_name_order)
   ) |>
   ggplot(aes(x=comparison, y=n)) +
-    geom_jitter(width=0.15, aes(color=comparison), show.legend=FALSE) +
-    facet_wrap(facets=vars(sample_name), ncol=1, scales="free_y") +
+    geom_jitter(
+      width=0.15, aes(color=comparison), show.legend=FALSE, size=0.75
+    ) +
+    facet_wrap(facets=vars(sample_name), ncol=3, scales="free_y") +
     ylim(0, NA) +
     theme_bw() +
-    labs(x="Comparison", y="Number of Insertion Site Locations")
+    theme(axis.text.x=element_text(angle=45, hjust=1)) +
+    labs(x="Comparison", y="Number of Insertion Site\nLocations")
+
+print(p)
+
+ggsave(
+  file.path("results", "replicate_cor", "filter_type_plot.pdf"),
+  plot=p, device=cairo_pdf, height=5, width=7
+)
 ```
