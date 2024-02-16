@@ -85,7 +85,7 @@ Generate a bar graph of the number of insertion sites per sample.
 
 ```{r}
 #| fig.height: 3.5
-#| fig.width: 4
+#| fig.width: 4.25
 
 p <- isa |>
   count(sample_name) |>
@@ -93,7 +93,7 @@ p <- isa |>
     geom_col(width=0.75, aes(fill=sample_name), show.legend=FALSE) +
     theme_bw() +
     labs(
-      x="Number of Unique Insertion\nSite Locations",
+      x="Unique Insertion Site\nLocations",
       y="Sample",
       title="Unique Insertion Site\nLocations per Sample"
     ) +
@@ -112,8 +112,8 @@ ggsave(
 Bargraph of the number of genome fragments captured with an insertion site.
 
 ```{r}
-#| fig.height: 3.5
-#| fig.width: 4
+#| fig.height: 3.75
+#| fig.width: 4.25
 
 p <- isa |>
   group_by(sample_name) |>
@@ -122,9 +122,9 @@ p <- isa |>
     geom_col(width=0.75, aes(fill=sample_name), show.legend=FALSE) +
     theme_bw() +
     labs(
-      x="Number of Sequenced\nInsertion Sites",
+      x="Insertion Site-containing\nDNA Fragments Sequenced",
       y="Sample",
-      title="Insertion Sites Sequenced\nper Sample"
+      title="Insertion Site-containing\nDNA Fragments Sequenced\nper Sample"
     ) +
     scale_fill_brewer(palette="Set2")
 
