@@ -16,7 +16,6 @@ library("randomcoloR")
 library("ggseqlogo")
 library("Biostrings")
 library("karyoploteR")
-library("Rsamtools")
 ```
 
 ## Prepare Data
@@ -362,6 +361,9 @@ ggsave(
 Karyotype plots R.
 
 ```{r}
+#| fig.height: 5
+#| fig.width: 6
+
 # Create GRanges for each sample.
 is_granges <- isa |>
   select(sample_name, seqnames, start, end, strand, score) |>
@@ -369,9 +371,32 @@ is_granges <- isa |>
   split(~ sample_name) |>
   map(makeGRangesFromDataFrame, keep.extra.columns=TRUE)
 
-p <- plotKaryotype(genome="mm39")
-kpBars(
-  p, is_granges[[2]], col="blue",
-  y1=rep(0.5, length(is_granges[[1]]))
-)
+if (!dir.exists(file.path("results", "karyoplots"))) {
+  dir.create(file.path("results", "karyoplots"))
+}
+
+# Increase the top plot margin so the title doesn't get cut off.
+pp <- getDefaultPlotParams(plot.type=1)
+pp$topmargin <- 300
+
+# Create a plot for each sample.
+iwalk(is_granges, \(x, y) {
+  species <- ifelse(str_starts(y, "Human"), "hg38", "mm39")
+
+  file_name <- y |>
+    str_to_lower() |>
+    str_replace_all(c(" "="_", "%"="")) |>
+    str_glue("{file}_karyoplot.pdf", file=_)
+
+  par(mar=c(1, 1, 10, 1))
+  cairo_pdf(
+    filename=file.path("results", "karyoplots", file_name),
+    height=5, width=6
+  )
+  
+  p <- plotKaryotype(genome=species, main=y, plot.params=pp)
+  kpSegments(p, x, y1=0.5, y0=0, col="royalblue")
+  
+  dev.off()
+})
 ```
