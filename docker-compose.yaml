@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  trace-isa-analysis:
+    image: ensoma/andrelieber-trace-isa-analysis:0.0.2
+    volumes:
+      - ./:/analysis/
+    working_dir: /analysis/
+    command: micromamba run -n andrelieber-trace-isa-analysis Rscript --vanilla -e "rmarkdown::render('lieber_2024_trace_isa.Rmd')"
