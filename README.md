@@ -6,10 +6,11 @@ This repository houses the downstream analysis of the Mouse TRACE ISA.
 
 ## Quickstart
 
-Clone the repository locally.
+Clone the repository locally and navigate into it.
 
 ```
 git clone https://github.com/ensoma/andrelieber-trace-isa-analysis.git
+cd andrelieber-trace-isa-analysis
 ```
 
 For ease of reproducibility all software is provided in a Docker container.
