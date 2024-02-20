@@ -2,13 +2,20 @@
 title: "Lieber 2024 TRACE ISA"
 author: "Bob Policastro"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, collapse=TRUE, comment="#>")
+```
 
 ## Libraries
 
 Load the required libraries for the analysis.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library("tidyverse")
 library("patchwork")
 library("randomcoloR")
@@ -53,8 +60,9 @@ sample_sheet <- read_csv(
 isa <- left_join(isa, sample_sheet, by="file_id")
 ```
 
-Only keep insertion sites that appear in at least 2 of 3 technical replicates.
-Return the sum of valies for the group of technical replicates.
+Only keep insertion sites that appear in at least 2 of 3 technical
+replicates. Return the sum of valies for the group of technical
+replicates.
 
 ```{r}
 isa <- isa |>
@@ -69,8 +77,8 @@ isa <- isa |>
   summarize(score=sum(score), .groups="drop")
 ```
 
-Set the factor levels of the sample names so they appear in a consistent order
-in the plots.
+Set the factor levels of the sample names so they appear in a consistent
+order in the plots.
 
 ```{r}
 sample_name_order <- c(
@@ -86,9 +94,9 @@ isa <- mutate(
 
 ## Number and Frequency of Insertion Sites
 
-Generate a bar graph of the number of insertion sites per sample. This is
-defined as the number of unique genomic locations for each sample where an
-insertion event was detected.
+Generate a bar graph of the number of insertion sites per sample. This
+is defined as the number of unique genomic locations for each sample
+where an insertion event was detected.
 
 ```{r, fig.height=3.5, fig.width=4.25}
 p <- isa |>
@@ -113,11 +121,11 @@ ggsave(
 )
 ```
 
-Multiple unique sequenced fragments can end up mapping to the same genomic
-location in the same sample. This is likely due to the clonal expansion of a
-cell with a particular genomic insertion site. This bargraph represents all
-fragments of DNA with insertion sites sequenced for each sample regardless of
-genomic location.
+Multiple unique sequenced fragments can end up mapping to the same
+genomic location in the same sample. This is likely due to the clonal
+expansion of a cell with a particular genomic insertion site. This
+bargraph represents all fragments of DNA with insertion sites sequenced
+for each sample regardless of genomic location.
 
 ```{r, fig.height=3.75, fig.width=4.25}
 p <- isa |>
@@ -143,11 +151,11 @@ ggsave(
 )
 ```
 
-As described above, a sample can have multiple DNA fragments with insertion
-sites mapping to the same genomic location. This stacked barplot represents
-for each genomic location with an insertion site in the sample,
-the fraction of insertion-site containing DNA fragments sequenced associated
-with that site.
+As described above, a sample can have multiple DNA fragments with
+insertion sites mapping to the same genomic location. This stacked
+barplot represents for each genomic location with an insertion site in
+the sample, the fraction of insertion-site containing DNA fragments
+sequenced associated with that site.
 
 ```{r, fig.height=4.5, fig.width=5.5}
 # Function to generate random color palette.
@@ -214,20 +222,17 @@ As part of the Ensoma TRACE ISA workflow, each insertion site is
 annotated to the nearest genomic feature at the *transcript* level.
 Assignment to a feature is based on the the following rules:
 
--   **Promoter**: -2,000 to +200 bp relative to *transcript* transcription
-start sites (TSS).
-
+-   **Promoter**: -2,000 to +200 bp relative to *transcript*
+    transcription start sites (TSS).
 -   **Exon**: Non-promoter and non-3\` UTR *exonic* positions.
-
 -   **Intron**: Non-promoter and non-3\` UTR *intronic* positions.
-
--   **3\` UTR**: From the end of the ORF to the last exon of a transcript.
-
--   **Downstream**: +3,000 kbp from the end of the last exon of the transcript.
-
+-   **3\` UTR**: From the end of the ORF to the last exon of a
+    transcript.
+-   **Downstream**: +3,000 kbp from the end of the last exon of the
+    transcript.
 -   **Distal Intergenic**: Not contained within the above constraints.
 
-```{r, fig.height=4.5, fig.width=5}
+```{r, fig.height=4.5, fig.width=5, warning=FALSE}
 annotation_factor_order <- c(
   "Promoter", "Exon", "Intron", "3' UTR", "Downstream", "Distal Intergenic"
 )
@@ -267,10 +272,10 @@ ggsave(
 )
 ```
 
-The distance to the nearest TSS for each insertion site is calculated as part
-of the annotation process. Here we create a histogram of these distances
-for each sample, excluding insertion sites greater than +500 kbp or less than
--500 kbp from the nearest TSS.
+The distance to the nearest TSS for each insertion site is calculated as
+part of the annotation process. Here we create a histogram of these
+distances for each sample, excluding insertion sites greater than +500
+kbp or less than -500 kbp from the nearest TSS.
 
 ```{r, fig.height=6, fig.width=6}
 p <- isa |>
@@ -316,12 +321,13 @@ ggsave(
 ```
 
 For all insertion sites appearing in at least two technical replicates,
-create a sequence logo centered around the insertion site including ±20 bps.
+create a sequence logo centered around the insertion site including ±20
+bps.
 
-Sleeping beauty is known to have a palindromic motif at the insertion site with
-A(-3), T(0), A(+1), and T(+4).
+Sleeping beauty is known to have a palindromic motif at the insertion
+site with A(-3), T(0), A(+1), and T(+4).
 
-```{r, fig.height=8, fig.width=8}
+```{r, fig.height=8, fig.width=8, warning=FALSE, message=FALSE}
 # Load the FASTA data into a table.
 fasta_files <- 
   file.path("data", "insertion_site_sequences") |>
@@ -421,4 +427,10 @@ iwalk(is_granges, \(x, y) {
   
   dev.off()
 })
+```
+
+## Software Information
+
+```{r, collapse=FALSE, echo=FALSE, comment=""}
+sessionInfo()
 ```
