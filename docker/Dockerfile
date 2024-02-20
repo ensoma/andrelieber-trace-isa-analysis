@@ -14,3 +14,5 @@ RUN \
         bioconductor-biostrings==2.70.1 \
         bioconductor-karyoploter==1.28.0  && \
     micromamba clean -y --all
+
+USER root
