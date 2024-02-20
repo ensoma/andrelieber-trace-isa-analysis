@@ -10,9 +10,9 @@ Clone the repository locally.
 git clone https://github.com/ensoma/andrelieber-trace-isa-analysis.git
 ```
 
-For ease of reproducibility all software to reproduce this analysis is
-provided in a Docker container. After installing Docker the following command
-can be run to generate the report and figures.
+For ease of reproducibility all software is provided in a Docker container.
+After installing Docker the following command can be run to generate the report
+and figures.
 
 ```
 docker compose run --rm trace-isa-analysis
