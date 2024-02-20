@@ -36,8 +36,7 @@ isa <- isa_files |>
   relocate(file_id, .after=sample_id)
 ```
 
-Load the sample sheet that has additional info for each sample.
-Then merge the information with the ISA results.
+Load the sample sheet that has additional info for each sample. Then merge the information with the ISA results.
 
 ```{r}
 sample_sheet <- read_csv(
@@ -47,8 +46,7 @@ sample_sheet <- read_csv(
 isa <- left_join(isa, sample_sheet, by="file_id")
 ```
 
-Only keep insertion sites that appear in at least 2 of 3 technical replicates.
-Return the sum of UMIs for the group of technical replicates.
+Only keep insertion sites that appear in at least 2 of 3 technical replicates. Return the sum of UMIs for the group of technical replicates.
 
 ```{r}
 # isa <- isa |>
@@ -61,8 +59,7 @@ Return the sum of UMIs for the group of technical replicates.
 #   summarize(score=sum(score), .groups="drop")
 ```
 
-Set the factor levels of the sample names so they appear in a consistent order
-in the plots.
+Set the factor levels of the sample names so they appear in a consistent order in the plots.
 
 ```{r}
 # sample_name_order <- c(

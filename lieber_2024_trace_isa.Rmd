@@ -1,8 +1,7 @@
 ---
 title: "Lieber 2024 TRACE ISA"
 author: "Bob Policastro"
-format: html
-editor: visual
+output: html_document
 ---
 
 ## Libraries
@@ -23,10 +22,12 @@ library("karyoploteR")
 Load the annotated insertion sites from the Ensoma TRACE ISA workflow.
 
 ```{r}
+# Get a list of files to load.
 isa_files <-
   file.path("data", "insertion_sites") |>
   list.files(pattern="\\.tsv$", full.names=TRUE)
 
+# Load the files.
 isa <- isa_files |>
   tibble(file_path=_) |>
   mutate(
@@ -39,25 +40,29 @@ isa <- isa_files |>
   relocate(file_id, .after=sample_id)
 ```
 
-Load the sample sheet that has additional info for each sample.
-Then merge the information with the ISA results.
+Load the sample sheet that has additional information for each sample.
+Then join the information with the ISA results.
 
 ```{r}
+# Load the sample sheet.
 sample_sheet <- read_csv(
   file.path("data", "sample_sheet.csv"), show_col_types=FALSE
 )
 
+# Join into the isa data.
 isa <- left_join(isa, sample_sheet, by="file_id")
 ```
 
 Only keep insertion sites that appear in at least 2 of 3 technical replicates.
-Return the sum of UMIs for the group of technical replicates.
+Return the sum of valies for the group of technical replicates.
 
 ```{r}
 isa <- isa |>
+  # Keep only insertion sites that appear in at least 2 technical replicates.
   group_by(sample_name, seqnames, start, end, strand) |>
   filter(n() > 1) |>
   ungroup() |>
+  # Sum the score for each insertion site across replicates.
   group_by(
     sample_name, seqnames, start, end, strand, annotation, tss_distance 
   ) |>
@@ -81,12 +86,11 @@ isa <- mutate(
 
 ## Number and Frequency of Insertion Sites
 
-Generate a bar graph of the number of insertion sites per sample.
+Generate a bar graph of the number of insertion sites per sample. This is
+defined as the number of unique genomic locations for each sample where an
+insertion event was detected.
 
-```{r}
-#| fig.height: 3.5
-#| fig.width: 4.25
-
+```{r, fig.height=3.5, fig.width=4.25}
 p <- isa |>
   count(sample_name) |>
   ggplot(aes(x=n, y=fct_rev(sample_name))) +
@@ -109,15 +113,18 @@ ggsave(
 )
 ```
 
-Bargraph of the number of genome fragments captured with an insertion site.
+Multiple unique sequenced fragments can end up mapping to the same genomic
+location in the same sample. This is likely due to the clonal expansion of a
+cell with a particular genomic insertion site. This bargraph represents all
+fragments of DNA with insertion sites sequenced for each sample regardless of
+genomic location.
 
-```{r}
-#| fig.height: 3.75
-#| fig.width: 4.25
-
+```{r, fig.height=3.75, fig.width=4.25}
 p <- isa |>
+  # Sum the total number of unique fragments for each sample.
   group_by(sample_name) |>
   summarize(score=sum(score), .groups="drop") |>
+  # Plot the total number of unique fragments for each sample.
   ggplot(aes(x=score, y=fct_rev(sample_name))) +
     geom_col(width=0.75, aes(fill=sample_name), show.legend=FALSE) +
     theme_bw() +
@@ -136,13 +143,13 @@ ggsave(
 )
 ```
 
-Create a stacked bar plot of the fraction of insertion sites for each genomic
-location in each sample. Colors correspond to a specific genomic location.
+As described above, a sample can have multiple DNA fragments with insertion
+sites mapping to the same genomic location. This stacked barplot represents
+for each genomic location with an insertion site in the sample,
+the fraction of insertion-site containing DNA fragments sequenced associated
+with that site.
 
-```{r}
-#| fig.height: 4.5
-#| fig.width: 5.5
-
+```{r, fig.height=4.5, fig.width=5.5}
 # Function to generate random color palette.
 random_pal <- function(vals) {
   n_vals <- length(unique(vals))
@@ -203,25 +210,39 @@ ggsave(
 
 ## Genomic Distribution
 
-Create a stacked barplot of the genomic annotation for the insertion sites
-in each sample.
+As part of the Ensoma TRACE ISA workflow, each insertion site is
+annotated to the nearest genomic feature at the *transcript* level.
+Assignment to a feature is based on the the following rules:
 
-```{r}
-#| fig.height: 4.5
-#| fig.width: 5
+-   **Promoter**: -2,000 to +200 bp relative to *transcript* transcription
+start sites (TSS).
 
+-   **Exon**: Non-promoter and non-3\` UTR *exonic* positions.
+
+-   **Intron**: Non-promoter and non-3\` UTR *intronic* positions.
+
+-   **3\` UTR**: From the end of the ORF to the last exon of a transcript.
+
+-   **Downstream**: +3,000 kbp from the end of the last exon of the transcript.
+
+-   **Distal Intergenic**: Not contained within the above constraints.
+
+```{r, fig.height=4.5, fig.width=5}
 annotation_factor_order <- c(
   "Promoter", "Exon", "Intron", "3' UTR", "Downstream", "Distal Intergenic"
 )
 
 p <- isa |>
+  # Remove superfluous parts of the annotation values.
   mutate(annotation=str_remove(annotation, "\\s\\(.+$")) |>
+  # Get the fraction of insertion sites associated with each genomic annotation.
   count(sample_name, annotation) |>
   group_by(sample_name) |>
   mutate(frac=n/sum(n)) |>
   ungroup() |>
   complete(sample_name, annotation, fill=list(n=0)) |>
   mutate(annotation=factor(annotation, levels=annotation_factor_order)) |>
+  # Create the stacked barplot.
   ggplot(aes(x=frac, y=fct_rev(sample_name))) +
     geom_col(aes(fill=fct_rev(annotation))) +
     scale_fill_brewer(palette="Set1") +
@@ -246,15 +267,17 @@ ggsave(
 )
 ```
 
-Create a histogram for the distribution of insertion sites around transcription
-start sites.
+The distance to the nearest TSS for each insertion site is calculated as part
+of the annotation process. Here we create a histogram of these distances
+for each sample, excluding insertion sites greater than +500 kbp or less than
+-500 kbp from the nearest TSS.
 
-```{r}
-#| fig.height: 6
-#| fig.width: 6
-
+```{r, fig.height=6, fig.width=6}
 p <- isa |>
+  # Filter out insertion sites where the distance to the nearest TSS
+  # is less than -500 kbp or greater than 500 kbp.
   dplyr::filter(abs(tss_distance) < 500000) |>
+  # Create the histogram.
   ggplot(aes(x=tss_distance)) +
     geom_histogram(
       bins=100,
@@ -292,12 +315,13 @@ ggsave(
 )
 ```
 
-Seqlogos for the insertion sites.
+For all insertion sites appearing in at least two technical replicates,
+create a sequence logo centered around the insertion site including ±20 bps.
 
-```{r}
-#| fig.height: 8
-#| fig.width: 8
+Sleeping beauty is known to have a palindromic motif at the insertion site with
+A(-3), T(0), A(+1), and T(+4).
 
+```{r, fig.height=8, fig.width=8}
 # Load the FASTA data into a table.
 fasta_files <- 
   file.path("data", "insertion_site_sequences") |>
@@ -358,12 +382,10 @@ ggsave(
 )
 ```
 
-Karyotype plots R.
+For each sample plot the location of the insertion sites relative to
+their chromosomal location on a karyogram.
 
-```{r}
-#| fig.height: 5
-#| fig.width: 6
-
+```{r, fig.height=5, fig.width=6}
 # Create GRanges for each sample.
 is_granges <- isa |>
   select(sample_name, seqnames, start, end, strand, score) |>
