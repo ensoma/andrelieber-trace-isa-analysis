@@ -11,19 +11,11 @@ git clone https://github.com/ensoma/andrelieber-trace-isa-analysis.git
 ```
 
 For ease of reproducibility all software to reproduce this analysis is
-provided in a docker container. After installed Docker the following command
-can be run.
+provided in a Docker container. After installing Docker the following command
+can be run to generate the report and figures.
 
 ```
-docker run \
-  -it --rm \
-  -v ${PWD}:/analysis/ \
-  -w /analysis/ \
-  ensoma/andrelieber-trace-isa-analysis:0.0.2 \
-  micromamba run -n andrelieber-trace-isa-analysis \
-  Rscript \
-    --vanilla \
-    -e "rmarkdown::render('lieber_2024_trace_isa.Rmd')"
+docker compose run --rm trace-isa-analysis
 ```
 
 ## Inputs
