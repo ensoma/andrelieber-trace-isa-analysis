@@ -1,3 +1,5 @@
+<img align="right" width="200" src="docs/lieber_trace_logo.jpg" />
+
 # Andre Lieber TRACE ISA 2024
 
 This repository houses the downstream analysis of the Mouse TRACE ISA.
