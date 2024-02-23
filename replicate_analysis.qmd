@@ -22,7 +22,7 @@ Load the annotated insertion sites from the Ensoma TRACE ISA workflow.
 ```{r}
 isa_files <-
   file.path("data", "insertion_sites") |>
-  list.files(pattern="\\.tsv$", full.names=TRUE)
+  list.files(pattern="_filtered\\.tsv$", full.names=TRUE)
 
 isa <- isa_files |>
   tibble(file_path=_) |>
@@ -63,9 +63,8 @@ Set the factor levels of the sample names so they appear in a consistent order i
 
 ```{r}
 # sample_name_order <- c(
-#   "Human K562 60.00%", "Mouse PBMC 65.10%", "Mouse PBMC 62.20%",
-#   "Mouse PBMC 38.90%", "Mouse PBMC 37.00%", "Mouse PBMC 25.00%",
-#   "Mouse PBMC 0.00%"
+#   "Mouse PBMC 65.10%", "Mouse PBMC 62.20%", "Mouse PBMC 38.90%",
+#   "Mouse PBMC 37.00%", "Mouse PBMC 25.00%", "Mouse PBMC 0.00%"
 # )
 # 
 # isa <- mutate(
