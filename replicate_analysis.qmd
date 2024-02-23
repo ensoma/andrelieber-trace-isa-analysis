@@ -254,9 +254,8 @@ df <- mutate(
 
 # Plot
 sample_name_order <- c(
-  "Human K562 60.00%", "Mouse PBMC 65.10%", "Mouse PBMC 62.20%",
-  "Mouse PBMC 38.90%", "Mouse PBMC 37.00%", "Mouse PBMC 25.00%",
-  "Mouse PBMC 0.00%"
+  "Mouse PBMC 65.10%", "Mouse PBMC 62.20%", "Mouse PBMC 38.90%",
+  "Mouse PBMC 37.00%", "Mouse PBMC 25.00%", "Mouse PBMC 0.00%"
 )
 
 p <- df |>
