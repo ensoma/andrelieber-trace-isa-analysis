@@ -116,7 +116,7 @@ if (!dir.exists("results")) dir.create("results")
 
 ggsave(
   file.path("results", "insertion_sites_per_sample.pdf"), plot=p,
-  device=cairo_pdf, height=3.5, width=4
+  device=cairo_pdf, height=3.5, width=4.25
 )
 ```
 
@@ -146,7 +146,7 @@ print(p)
 
 ggsave(
   file.path("results", "insertion_sites_sequenced_per_sample.pdf"), plot=p,
-  device=cairo_pdf, height=3.5, width=4
+  device=cairo_pdf, height=3.5, width=4.25
 )
 ```
 
