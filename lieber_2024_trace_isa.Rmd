@@ -82,8 +82,8 @@ order in the plots.
 
 ```{r}
 sample_name_order <- c(
-  "Mouse PBMC 65.10%", "Mouse PBMC 62.20%", "Mouse PBMC 38.90%",
-  "Mouse PBMC 37.00%", "Mouse PBMC 25.00%", "Mouse PBMC 0.00%"
+  "Mouse BM 65.10%", "Mouse BM 62.20%", "Mouse BM 38.90%",
+  "Mouse BM 37.00%", "Mouse BM 25.00%", "Mouse BM 0.00%"
 )
 
 isa <- mutate(
