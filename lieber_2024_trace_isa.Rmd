@@ -98,7 +98,7 @@ is defined as the number of unique genomic locations for each sample
 where an insertion event was detected.
 
 ```{r, fig.height=3.5, fig.width=4.25}
-p <- isa |>
+p1 <- isa |>
   count(sample_name) |>
   ggplot(aes(x=n, y=fct_rev(sample_name))) +
     geom_col(width=0.75, aes(fill=sample_name), show.legend=FALSE) +
@@ -110,12 +110,12 @@ p <- isa |>
     ) +
     scale_fill_brewer(palette="Set2")
 
-print(p)
+print(p1)
 
 if (!dir.exists("results")) dir.create("results")
 
 ggsave(
-  file.path("results", "insertion_sites_per_sample.pdf"), plot=p,
+  file.path("results", "insertion_sites_per_sample.pdf"), plot=p1,
   device=cairo_pdf, height=3.5, width=4.25
 )
 ```
@@ -127,7 +127,7 @@ bargraph represents all fragments of DNA with insertion sites sequenced
 for each sample regardless of genomic location.
 
 ```{r, fig.height=3.75, fig.width=4.25}
-p <- isa |>
+p2 <- isa |>
   # Sum the total number of unique fragments for each sample.
   group_by(sample_name) |>
   summarize(score=sum(score), .groups="drop") |>
@@ -143,11 +143,26 @@ p <- isa |>
     ) +
     scale_fill_brewer(palette="Set2")
 
+print(p2)
+
+ggsave(
+  file.path("results", "insertion_sites_sequenced_per_sample.pdf"), plot=p2,
+  device=cairo_pdf, height=3.5, width=4.25
+)
+```
+
+Combine the previous two plots into one figure for publication.
+
+```{r, fig.height=3.75, fig.width=7}
+p <- 
+  (p2 + p1) +
+  plot_layout(axes="collect_y")
+
 print(p)
 
 ggsave(
-  file.path("results", "insertion_sites_sequenced_per_sample.pdf"), plot=p,
-  device=cairo_pdf, height=3.5, width=4.25
+  file.path("results", "insertion_sites_for_figure.pdf"), plot=p,
+  device=cairo_pdf, height=3.75, width=7
 )
 ```
 
