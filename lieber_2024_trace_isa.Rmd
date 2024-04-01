@@ -22,6 +22,11 @@ library("randomcoloR")
 library("ggseqlogo")
 library("Biostrings")
 library("karyoploteR")
+library("GenomicFeatures")
+library("GenomicRanges")
+library("GenomeInfoDb")
+library("Rsamtools")
+library("readr")
 ```
 
 ## Prepare Data
@@ -244,12 +249,183 @@ Assignment to a feature is based on the the following rules:
 -   **3\` UTR**: From the end of the ORF to the last exon of a
     transcript.
 -   **Downstream**: +3,000 kbp from the end of the last exon of the
-    transcript.
+    downstream-most transcript exon.
 -   **Distal Intergenic**: Not contained within the above constraints.
+
+We first need to calculate the overall feature distribution of the mouse genome.
+The first step is to download the assembly and get the total genome length.
+
+```{r}
+assembly_url <-
+  "https://ftp.ensembl.org/pub/release-111/fasta/mus_musculus/dna/Mus_musculus.GRCm39.dna.primary_assembly.fa.gz"
+
+index_file <- file.path(
+  "data", "Mus_musculus.GRCm39.dna.primary_assembly.fa.fai"
+)
+
+if (!file.exists(index_file)) {
+  # Download the genome assembly.
+    download.file(
+      assembly_url,
+      file.path("data", "Mus_musculus.GRCm39.dna.primary_assembly.fa.gz"),
+      method="wget"
+    )
+  
+  # Unzip the file.
+  system2(
+    "gunzip",
+    file.path("data", "Mus_musculus.GRCm39.dna.primary_assembly.fa.gz")
+  )
+  
+  # Index the genome assembly.
+  indexFa(file.path("data", "Mus_musculus.GRCm39.dna.primary_assembly.fa"))
+}
+  
+# Load the index.
+genome_length <- index_file |>
+  read_tsv(
+    col_names=c(
+      "seqnames", "width", "byte_index", "bases_per_line", "bytes_per_line"
+    ),
+    col_types=c("c", rep("i", 4))
+  ) |>
+  pull(width) |>
+  sum()
+```
+
+Now that the total genome size has been obtained we can get the fraction of
+the genome contained within each annotation. The priority of annotations is as
+follows: Promoter, 3' UTR, exonic, intronic, downstream, and distal intergenic.
+
+```{r}
+# Download the mouse GTF file if it doesn't exist.
+if (!file.exists(file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz"))) {
+  download.file(
+    "https://ftp.ensembl.org/pub/release-111/gtf/mus_musculus/Mus_musculus.GRCm39.111.chr.gtf.gz",
+    file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz"),
+    method="wget"
+  )
+}
+
+# Load the GTF file as a TxDb object.
+gtf <- makeTxDbFromGFF(file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz"))
+
+# Portion of genome that is promoter.
+promoter_regions <- gtf |>
+  transcripts() |>
+  promoters(upstream=2000, downstream=200) |>
+  GenomicRanges::reduce()
+
+promoter_sum <- promoter_regions |>
+  width() |>
+  sum()
+
+# Portions of genome that are 3' UTR but not promoter.
+three_prime_utr_regions <- gtf |>
+  threeUTRsByTranscript() |>
+  unlist() |>
+  GenomicRanges::reduce() |>
+  GenomicRanges::setdiff(promoter_regions)
+
+three_prime_utr_sums <- three_prime_utr_regions |>
+  width() |>
+  sum()
+
+# Portion of genome that is exonic but not promoter or 3' UTR.
+exonic_regions <- gtf |>
+  exons() |>
+  GenomicRanges::reduce() |>
+  GenomicRanges::setdiff(c(promoter_regions, three_prime_utr_regions))
+
+exonic_sum <- exonic_regions |>
+  width() |>
+  sum()
+
+# Portion of the genome that is introniuc but not promoter, 3' UTR, or exonic.
+intronic_regions <- gtf |>
+  intronsByTranscript() |>
+  unlist() |>
+  GenomicRanges::reduce() |>
+  GenomicRanges::setdiff(c(
+    promoter_regions, three_prime_utr_regions, exonic_regions
+  ))
+
+intronic_sum <- intronic_regions |>
+  width() |>
+  sum()
+
+# Portion of the genome that is downstream from the gene but not in any
+# promoters, 3' UTRs, exonic, or intronic regions.
+get_downstream_regions <- function(genes, distance) {
+  downstream <- genes
+  
+  start(downstream)[as.character(strand(genes)) == "+"] <-
+    end(genes)[as.character(strand(genes)) == "+"] + 1
+  end(downstream)[as.character(strand(genes)) == "+"] <-
+    end(genes)[as.character(strand(genes)) == "+"] + distance
+  
+  end(downstream)[as.character(strand(genes)) == "-"] <-
+    start(genes)[as.character(strand(genes)) == "-"] - 1
+  start(downstream)[as.character(strand(genes)) == "-"] <-
+    start(genes)[as.character(strand(genes)) == "-"] - distance
+  
+  return(downstream)
+}
+
+downstream_regions <- gtf |>
+  genes() |>
+  get_downstream_regions(3000) |>
+  GenomicRanges::reduce() |>
+  GenomicRanges::setdiff(c(
+    promoter_regions, three_prime_utr_regions, exonic_regions, intronic_regions
+  ))
+
+downstream_sum <- downstream_regions |>
+  width() |>
+  sum()
+
+# Caluclate the distal intergenic length.
+distal_intergenic_length <-
+  genome_length - (
+    promoter_sum +
+    three_prime_utr_sums +
+    exonic_sum +
+    intronic_sum +
+    downstream_sum    
+  )
+
+# Get the percentage of the genome that is each feature.
+feature_perc <-
+  tibble(
+    sample_name="Mouse Genome",
+    annotation=c(
+      "Promoter", "3' UTR", "Exon", "Intron", "Downstream", "Distal Intergenic"
+    ),
+    n=c(
+      promoter_sum,
+      three_prime_utr_sums,
+      exonic_sum,
+      intronic_sum,
+      downstream_sum,
+      distal_intergenic_length
+    )
+  ) |>
+  mutate(frac=n/sum(n))
+```
+
+Finally we will plot the distribution of insertion sites relative to genomic
+features for each sample. The overall distribution of genomic features
+calculated earlier will will be included as reference.
 
 ```{r, fig.height=4.5, fig.width=5, warning=FALSE}
 annotation_factor_order <- c(
   "Promoter", "Exon", "Intron", "3' UTR", "Downstream", "Distal Intergenic"
+)
+
+name_order <- c(
+  "Mouse BM 65.10%", "Mouse BM 62.20%", "Mouse BM 38.90%",
+  "Mouse BM 37.00%", "Mouse BM 25.00%", "Mouse BM 0.00%",
+  "Mouse Genome"
 )
 
 p <- isa |>
@@ -261,7 +437,12 @@ p <- isa |>
   mutate(frac=n/sum(n)) |>
   ungroup() |>
   complete(sample_name, annotation, fill=list(n=0)) |>
-  mutate(annotation=factor(annotation, levels=annotation_factor_order)) |>
+  # Add the general mouse genome stats.
+  bind_rows(feature_perc) |>
+  mutate(
+    annotation=factor(annotation, levels=annotation_factor_order),
+    sample_name=factor(sample_name, levels=name_order)
+  ) |>
   # Create the stacked barplot.
   ggplot(aes(x=frac, y=fct_rev(sample_name))) +
     geom_col(aes(fill=fct_rev(annotation))) +
@@ -287,54 +468,6 @@ ggsave(
 )
 ```
 
-The distance to the nearest TSS for each insertion site is calculated as
-part of the annotation process. Here we create a histogram of these
-distances for each sample, excluding insertion sites greater than +500
-kbp or less than -500 kbp from the nearest TSS.
-
-```{r, fig.height=6, fig.width=6}
-p <- isa |>
-  # Filter out insertion sites where the distance to the nearest TSS
-  # is less than -500 kbp or greater than 500 kbp.
-  dplyr::filter(abs(tss_distance) < 500000) |>
-  # Create the histogram.
-  ggplot(aes(x=tss_distance)) +
-    geom_histogram(
-      bins=100,
-      aes(
-        y=after_stat(count)/sum(after_stat(count)), fill=sample_name
-      ),
-      show.legend=FALSE
-    ) +
-    theme_bw() +
-    facet_wrap(
-      vars(sample_name), ncol=1, scales="free_y",
-      strip.position="right"
-    ) +
-    scale_x_continuous(
-      labels=scales::label_number(suffix=" kbp",scale=1e-3)
-    ) +
-    scale_y_continuous(labels=scales::percent) +
-    scale_fill_brewer(palette="Set2") +
-    theme(
-      strip.text.y.right=element_text(angle=0),
-      strip.background=element_blank(),
-      axis.text.y=element_text(size=6)
-    ) +
-    labs(
-      x="Distance to Promoter",
-      y="Percent of Insertion Sites",
-      title="Distribution of Unique Insertion Site\nLocations Relative to Promoters"
-    )
-
-print(p)
-
-ggsave(
-  file.path("results", "insertion_sites_promoter_proximity.pdf"),
-  plot=p, device=cairo_pdf, height=6, width=6
-)
-```
-
 For all insertion sites appearing in at least two technical replicates,
 create a sequence logo centered around the insertion site including ±20
 bps.
@@ -355,10 +488,10 @@ fasta_files <-
     seq=map(data, \(x) {unname(as.character(x))})
   ) |>
   left_join(
-    select(sample_sheet, file_id, sample_name),
+    dplyr::select(sample_sheet, file_id, sample_name),
     by="file_id"
   ) |>
-  select(!c(data, file_path, file_id)) |>
+  dplyr::select(!c(data, file_path, file_id)) |>
   unnest(c(posid, seq)) |>
   distinct() |>
   separate_wider_regex(
@@ -409,7 +542,7 @@ their chromosomal location on a karyogram.
 ```{r, fig.height=5, fig.width=6}
 # Create GRanges for each sample.
 is_granges <- isa |>
-  select(sample_name, seqnames, start, end, strand, score) |>
+  dplyr::select(sample_name, seqnames, start, end, strand, score) |>
   mutate(seqnames=str_c("chr", seqnames)) |>
   split(~ sample_name) |>
   map(makeGRangesFromDataFrame, keep.extra.columns=TRUE)
