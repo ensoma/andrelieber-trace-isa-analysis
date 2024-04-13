@@ -90,10 +90,11 @@ Export the filtered insertion sites for inclusion in the final paper.
 isa_old |> 
   dplyr::select(!c(
     file_path, file_name, sample_id, file_id, score, sample_name, annotation,
-    tss_distance, score
+    tss_distance, score, sample_source, gene_marking_percent,
+    integration_vector, payload_vector, species
   )) |>
   distinct() |>
-  left_join(isa, by=c("seqnames", "start", "end", "strand"), multiple="all") |>
+  right_join(isa, by=c("seqnames", "start", "end", "strand"), multiple="all") |>
   relocate(sample_name) |>
   relocate(score, annotation, tss_distance, .after=strand) |>
   write_tsv(file.path("results", "TRACE_insertion_sites_annotated.tsv"))
