@@ -16,7 +16,8 @@ RUN \
         bioconductor-genomicfeatures==1.54.1 \
         bioconductor-genomicranges==1.54.1 \
         bioconductor-rsamtools==2.18.0 \
-        bioconductor-karyoploter==1.28.0  && \
+        bioconductor-karyoploter==1.28.0  \
+        bioconductor-chipseeker==1.38.0 && \
     micromamba clean -y --all
 
 USER root

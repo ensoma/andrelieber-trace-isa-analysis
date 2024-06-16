@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   trace-isa-analysis:
-    image: ensoma/andrelieber-trace-isa-analysis:0.0.4
+    image: ensoma/andrelieber-trace-isa-analysis:0.0.5
     volumes:
       - ./:/analysis/
     working_dir: /analysis/
