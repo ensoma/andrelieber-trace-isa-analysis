@@ -27,6 +27,7 @@ library("GenomicRanges")
 library("GenomeInfoDb")
 library("Rsamtools")
 library("readr")
+library("ChIPseeker")
 ```
 
 ## Prepare Data
@@ -84,6 +85,32 @@ isa <- isa |>
   summarize(score=sum(score), .groups="drop")
 ```
 
+Annotate the insertion sites.
+
+```{r}
+# Load the annotation as a TxDb.
+txdb <- 
+  file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz") |>
+  makeTxDbFromGFF()
+
+# Reannotate the insertion sites.
+isa <- isa |>
+  dplyr::select(!c(annotation, tss_distance)) |>
+  makeGRangesFromDataFrame(keep.extra.columns=TRUE) |>
+  annotatePeak(
+    peak=_,
+    tssRegion=c(-2000, 200),
+    TxDb=txdb,
+    level="transcript",
+    sameStrand=FALSE
+  ) |>
+  as_tibble() |>
+  dplyr::select(
+    sample_name, seqnames, start, end, strand, annotation,
+    tss_distance=distanceToTSS, score
+  )
+```
+
 Export the filtered insertion sites for inclusion in the final paper.
 
 ```{r}
@@ -105,8 +132,8 @@ order in the plots.
 
 ```{r}
 sample_name_order <- c(
-  "Mouse BM 65.10%", "Mouse BM 62.20%", "Mouse BM 38.90%",
-  "Mouse BM 37.00%", "Mouse BM 25.00%", "Mouse BM 0.00%"
+  "Mouse BM (65.10%)", "Mouse BM (62.20%)", "Mouse BM (38.90%)",
+  "Mouse BM (37.00%)", "Mouse BM (25.00%)", "Mouse BM (0.00%)"
 )
 
 isa <- mutate(
@@ -128,7 +155,7 @@ p1 <- isa |>
     theme_bw() +
     labs(
       x="Unique Insertion Site\nLocations",
-      y="Sample",
+      y="Tissue (GFP+ %)",
       title="Unique Insertion Site\nLocations per Sample"
     ) +
     scale_fill_brewer(palette="Set2")
@@ -161,7 +188,7 @@ p2 <- isa |>
     theme(axis.text.x=element_text(angle=45, hjust=1)) +
     labs(
       x="Insertion Site-containing\nDNA Fragments Sequenced",
-      y="Sample",
+      y="Tissue (GFP+ %)",
       title="Insertion Site-containing\nDNA Fragments Sequenced\nper Sample"
     ) +
     scale_fill_brewer(palette="Set2")
@@ -240,7 +267,7 @@ p <- df |>
       theme_classic() +
       labs(
         x="Percentage of Captured\nInsertion Events",
-        y="Sample"
+        y="Tissue (GFP+ %)"
       )
   }) |>
   wrap_plots(ncol=1) +
@@ -441,8 +468,8 @@ annotation_factor_order <- c(
 )
 
 name_order <- c(
-  "Mouse BM 65.10%", "Mouse BM 62.20%", "Mouse BM 38.90%",
-  "Mouse BM 37.00%", "Mouse BM 25.00%", "Mouse BM 0.00%",
+  "Mouse BM (65.10%)", "Mouse BM (62.20%)", "Mouse BM (38.90%)",
+  "Mouse BM (37.00%)", "Mouse BM (25.00%)", "Mouse BM (0.00%)",
   "Mouse Genome"
 )
 
@@ -474,7 +501,7 @@ p <- isa |>
     labs(
       title="Genomic Distribution of\nInsertion Sites",
       x="Percentage of Insertion Site\nLocations",
-      y="Sample",
+      y="Tissue (GFP+ %)",
       fill="Genomic\nAnnotation"
     )
 
