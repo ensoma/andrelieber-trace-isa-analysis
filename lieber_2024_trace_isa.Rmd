@@ -71,8 +71,6 @@ replicates. Return the sum of values for the group of technical
 replicates.
 
 ```{r}
-isa_old <- isa
-
 isa <- isa |>
   # Keep only insertion sites that appear in at least 2 technical replicates.
   group_by(sample_name, seqnames, start, end, strand) |>
@@ -88,13 +86,22 @@ isa <- isa |>
 Annotate the insertion sites.
 
 ```{r}
+# Download the mouse GTF file if it doesn't exist.
+if (!file.exists(file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz"))) {
+  download.file(
+    "https://ftp.ensembl.org/pub/release-111/gtf/mus_musculus/Mus_musculus.GRCm39.111.chr.gtf.gz",
+    file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz"),
+    method="wget"
+  )
+}
+
 # Load the annotation as a TxDb.
 txdb <- 
   file.path("data", "Mus_musculus.GRCm39.111.chr.gtf.gz") |>
   makeTxDbFromGFF()
 
 # Reannotate the insertion sites.
-isa <- isa |>
+isa_anno <- isa |>
   dplyr::select(!c(annotation, tss_distance)) |>
   makeGRangesFromDataFrame(keep.extra.columns=TRUE) |>
   annotatePeak(
@@ -104,26 +111,43 @@ isa <- isa |>
     level="transcript",
     sameStrand=FALSE
   ) |>
-  as_tibble() |>
-  dplyr::select(
-    sample_name, seqnames, start, end, strand, annotation,
-    tss_distance=distanceToTSS, score
-  )
+  as_tibble()
+
+isa <- dplyr::select(
+  isa_anno,
+  sample_name, seqnames, start, end, strand, annotation,
+  tss_distance=distanceToTSS, score
+)
 ```
 
 Export the filtered insertion sites for inclusion in the final paper.
 
 ```{r}
-isa_old |> 
-  dplyr::select(!c(
-    file_path, file_name, sample_id, file_id, score, sample_name, annotation,
-    tss_distance, score, sample_source, gene_marking_percent,
-    integration_vector, payload_vector, species
-  )) |>
-  distinct() |>
-  right_join(isa, by=c("seqnames", "start", "end", "strand"), multiple="all") |>
-  relocate(sample_name) |>
-  relocate(score, annotation, tss_distance, .after=strand) |>
+isa_anno |>
+  left_join(
+    sample_sheet |>
+      dplyr::select(
+        sample_name, species, sample_source, gene_marking_percent
+      ) |>
+      distinct(),
+    by="sample_name"
+  ) |>
+  dplyr::select(
+    sample_name, seqnames, start, end, width, strand, score,
+    annotation_detailed=annotation, tss_distance=distanceToTSS,
+    gene_seqnames=geneChr, gene_start=geneStart, gene_end=geneEnd,
+    gene_width=geneLength, gene_strand=geneStrand, gene_id=geneId,
+    transcript_id=transcriptId, species, sample_source, gene_marking_percent
+  ) |>
+  mutate(
+    annotation_simple=str_remove(annotation_detailed, "\\s\\(.+$"),
+    sample_name=factor(
+      sample_name, levels=str_sort(unique(sample_name), numeric=TRUE)
+    ),
+    seqnames=factor(seqnames, levels=str_sort(unique(seqnames), numeric=TRUE))
+  ) |>
+  dplyr::relocate(annotation_simple, .after=annotation_detailed) |>
+  arrange(sample_name, desc(score), seqnames, start) |>
   write_tsv(file.path("results", "TRACE_insertion_sites_annotated.tsv"))
 ```
 
